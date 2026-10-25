@@ -1,4 +1,4 @@
--- Delta Waypoint Utility Script (No Teleportation)
+-- Delta Waypoint Utility Script (With Visibility Toggle)
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
@@ -26,11 +26,11 @@ screenGui.Name = "DeltaWaypointManager"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
 
--- Main Container Frame
+-- Main Container Frame (Expanded slightly to fit new button)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 420)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+mainFrame.Size = UDim2.new(0, 320, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -112,10 +112,26 @@ local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 6)
 btnCorner.Parent = createBtn
 
+-- Toggle Hide All Waypoints Button
+local waypointsVisible = true
+local toggleVisBtn = Instance.new("TextButton")
+toggleVisBtn.Size = UDim2.new(0.9, 0, 0, 30)
+toggleVisBtn.Position = UDim2.new(0.05, 0, 0, 175)
+toggleVisBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+toggleVisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleVisBtn.Text = "Hide Waypoints: OFF"
+toggleVisBtn.Font = Enum.Font.GothamBold
+toggleVisBtn.TextSize = 12
+toggleVisBtn.Parent = mainFrame
+
+local toggleVisCorner = Instance.new("UICorner")
+toggleVisCorner.CornerRadius = UDim.new(0, 6)
+toggleVisCorner.Parent = toggleVisBtn
+
 -- Waypoint Scroll List
 local scrollingFrame = Instance.new("ScrollingFrame")
 scrollingFrame.Size = UDim2.new(0.9, 0, 0, 205)
-scrollingFrame.Position = UDim2.new(0.05, 0, 0, 185)
+scrollingFrame.Position = UDim2.new(0.05, 0, 0, 215)
 scrollingFrame.BackgroundTransparency = 1
 scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollingFrame.ScrollBarThickness = 4
@@ -126,7 +142,7 @@ uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0, 6)
 uiListLayout.Parent = scrollingFrame
 
--- Toggle Button (Floating)
+-- Toggle Menu Button (Floating)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 45, 0, 45)
 toggleBtn.Position = UDim2.new(0, 20, 0.5, -22)
@@ -179,6 +195,7 @@ local function createMarker(name, pos, color)
     billboard.Size = UDim2.new(0, 150, 0, 50)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
+    billboard.Enabled = waypointsVisible -- Respect current global visibility state
     billboard.Parent = part
 
     local label = Instance.new("TextLabel")
@@ -193,6 +210,28 @@ local function createMarker(name, pos, color)
     
     return part
 end
+
+-- Visibility Toggle Functionality
+toggleVisBtn.MouseButton1Click:Connect(function()
+    waypointsVisible = not waypointsVisible
+    if waypointsVisible then
+        toggleVisBtn.Text = "Hide Waypoints: OFF"
+        toggleVisBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    else
+        toggleVisBtn.Text = "Hide Waypoints: ON"
+        toggleVisBtn.BackgroundColor3 = Color3.fromRGB(180, 100, 0)
+    end
+
+    -- Toggle BillboardGuís for all loaded markers
+    for _, wp in ipairs(waypointsData) do
+        if wp.Marker then
+            local billboard = wp.Marker:FindFirstChildOfClass("BillboardGui")
+            if billboard then
+                billboard.Enabled = waypointsVisible
+            end
+        end
+    end
+end)
 
 -- Save & Load Handling
 local function saveToFile()
@@ -235,7 +274,7 @@ local function refreshUIList()
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = itemFrame
 
-        -- Delete Button (Expanded width since TP was removed)
+        -- Delete Button
         local delBtn = Instance.new("TextButton")
         delBtn.Size = UDim2.new(0, 70, 0, 25)
         delBtn.Position = UDim2.new(0.72, 0, 0.5, -12.5)
@@ -309,4 +348,4 @@ if isfile(fileName) then
         refreshUIList()
     end
 end
-print("util")
+print("iw8e8")
