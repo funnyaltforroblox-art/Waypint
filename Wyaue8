@@ -1,0 +1,335 @@
+-- Delta Waypoint Manager Script
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+-- File Storage Configuration
+local folderName = "DeltaWaypoints"
+local fileName = folderName .. "/waypoints.json"
+
+if not isfolder(folderName) then
+    makefolder(folderName)
+end
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DeltaWaypointManager"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+-- Main Container Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+-- Title Bar
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "Waypoint Manager"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 16
+titleLabel.Parent = mainFrame
+
+-- Input: Waypoint Name
+local nameBox = Instance.new("TextBox")
+nameBox.Size = UDim2.new(0.9, 0, 0, 35)
+nameBox.Position = UDim2.new(0.05, 0, 0, 45)
+nameBox.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+nameBox.PlaceholderText = "Waypoint Name"
+nameBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+nameBox.Text = ""
+nameBox.Font = Enum.Font.Gotham
+nameBox.TextSize = 14
+nameBox.Parent = mainFrame
+
+local nameCorner = Instance.new("UICorner")
+nameCorner.CornerRadius = UDim.new(0, 6)
+nameCorner.Parent = nameBox
+
+-- Color Inputs (R, G, B)
+local rgbFrame = Instance.new("Frame")
+rgbFrame.Size = UDim2.new(0.9, 0, 0, 35)
+rgbFrame.Position = UDim2.new(0.05, 0, 0, 90)
+rgbFrame.BackgroundTransparency = 1
+rgbFrame.Parent = mainFrame
+
+local function createColorInput(position, placeholder, defaultText)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0.3, -5, 1, 0)
+    box.Position = position
+    box.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.PlaceholderText = placeholder
+    box.Text = defaultText
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 14
+    box.Parent = rgbFrame
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = box
+    return box
+end
+
+local rBox = createColorInput(UDim2.new(0, 0, 0, 0), "R (0-255)", "255")
+local gBox = createColorInput(UDim2.new(0.35, 0, 0, 0), "G (0-255)", "255")
+local bBox = createColorInput(UDim2.new(0.7, 0, 0, 0), "B (0-255)", "255")
+
+-- Create Button
+local createBtn = Instance.new("TextButton")
+createBtn.Size = UDim2.new(0.9, 0, 0, 35)
+createBtn.Position = UDim2.new(0.05, 0, 0, 135)
+createBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+createBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+createBtn.Text = "Create Waypoint at Position"
+createBtn.Font = Enum.Font.GothamBold
+createBtn.TextSize = 14
+createBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = createBtn
+
+-- Waypoint Scroll List
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(0.9, 0, 0, 205)
+scrollingFrame.Position = UDim2.new(0.05, 0, 0, 185)
+scrollingFrame.BackgroundTransparency = 1
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.ScrollBarThickness = 4
+scrollingFrame.Parent = mainFrame
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 6)
+uiListLayout.Parent = scrollingFrame
+
+-- Toggle Button (Floating)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 45, 0, 45)
+toggleBtn.Position = UDim2.new(0, 20, 0.5, -22)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Text = "WP"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = screenGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 23)
+toggleCorner.Parent = toggleBtn
+
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- 3D Waypoints Folder in Workspace
+local markerFolder = workspace:FindFirstChild("DeltaWaypointMarkers")
+if not markerFolder then
+    markerFolder = Instance.new("Folder")
+    markerFolder.Name = "DeltaWaypointMarkers"
+    markerFolder.Parent = workspace
+end
+
+local waypointsData = {}
+
+-- Function to update canvas size automatically
+local function updateListLayout()
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
+end
+
+uiListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateListLayout)
+
+-- Render 3D Part marker
+local function createMarker(name, pos, color)
+    local part = Instance.new("Part")
+    part.Name = name
+    part.Size = Vector3.new(1, 1, 1)
+    part.Position = pos
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 1
+    part.Parent = markerFolder
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 150, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = part
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = color
+    label.TextStrokeTransparency = 0.5
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.Parent = billboard
+    
+    return part
+end
+
+-- Save & Load Handling
+local function saveToFile()
+    local serialized = {}
+    for _, wp in ipairs(waypointsData) do
+        table.insert(serialized, {
+            Name = wp.Name,
+            Pos = {wp.Pos.X, wp.Pos.Y, wp.Pos.Z},
+            Color = {wp.Color.R * 255, wp.Color.G * 255, wp.Color.B * 255}
+        })
+    end
+    writefile(fileName, HttpService:JSONEncode(serialized))
+end
+
+local function refreshUIList()
+    for _, child in ipairs(scrollingFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+
+    for index, wp in ipairs(waypointsData) do
+        local itemFrame = Instance.new("Frame")
+        itemFrame.Size = UDim2.new(1, -5, 0, 35)
+        itemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+        itemFrame.Parent = scrollingFrame
+
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 6)
+        itemCorner.Parent = itemFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.5, 0, 1, 0)
+        label.Position = UDim2.new(0.05, 0, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = wp.Name
+        label.TextColor3 = wp.Color
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = itemFrame
+
+        -- Teleport Button
+        local tpBtn = Instance.new("TextButton")
+        tpBtn.Size = UDim2.new(0, 50, 0, 25)
+        tpBtn.Position = UDim2.new(0.55, 0, 0.5, -12.5)
+        tpBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+        tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tpBtn.Text = "TP"
+        tpBtn.Font = Enum.Font.GothamBold
+        tpBtn.TextSize = 12
+        tpBtn.Parent = itemFrame
+
+        local tpCorner = Instance.new("UICorner")
+        tpCorner.CornerRadius = UDim.new(0, 4)
+        tpCorner.Parent = tpBtn
+
+        tpBtn.MouseButton1Click:Connect(function()
+            if humanoidRootPart then
+                humanoidRootPart.CFrame = CFrame.new(wp.Pos)
+            end
+        end)
+
+        -- Delete Button
+        local delBtn = Instance.new("TextButton")
+        delBtn.Size = UDim2.new(0, 50, 0, 25)
+        delBtn.Position = UDim2.new(0.78, 0, 0.5, -12.5)
+        delBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        delBtn.Text = "Del"
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.TextSize = 12
+        delBtn.Parent = itemFrame
+
+        local delCorner = Instance.new("UICorner")
+        delCorner.CornerRadius = UDim.new(0, 4)
+        delCorner.Parent = delBtn
+
+        delBtn.MouseButton1Click:Connect(function()
+            if wp.Marker then
+                wp.Marker:Destroy()
+            end
+            table.remove(waypointsData, index)
+            saveToFile()
+            refreshUIList()
+        end)
+    end
+end
+
+-- Add Waypoint Action
+createBtn.MouseButton1Click:Connect(function()
+    local name = nameBox.Text
+    if name == "" then name = "Waypoint " .. (#waypointsData + 1) end
+
+    local r = tonumber(rBox.Text) or 255
+    local g = tonumber(gBox.Text) or 255
+    local b = tonumber(bBox.Text) or 255
+    local color = Color3.fromRGB(math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
+
+    if not humanoidRootPart then return end
+    local pos = humanoidRootPart.Position
+
+    local marker = createMarker(name, pos, color)
+
+    table.insert(waypointsData, {
+        Name = name,
+        Pos = pos,
+        Color = color,
+        Marker = marker
+    })
+
+    saveToFile()
+    refreshUIList()
+    nameBox.Text = ""
+end)
+
+-- Load existing waypoints from file on startup
+if isfile(fileName) then
+    local success, decoded = pcall(function()
+        return HttpService:JSONDecode(readfile(fileName))
+    end)
+    if success and type(decoded) == "table" then
+        for _, data in ipairs(decoded) do
+            local pos = Vector3.new(data.Pos[1], data.Pos[2], data.Pos[3])
+            local col = Color3.fromRGB(data.Color[1], data.Color[2], data.Color[3])
+            local marker = createMarker(data.Name, pos, col)
+            
+            table.insert(waypointsData, {
+                Name = data.Name,
+                Pos = pos,
+                Color = col,
+                Marker = marker
+            })
+        end
+        refreshUIList()
+    end
+end
+print("loafed")
