@@ -1,9 +1,7 @@
--- Delta Waypoint Manager Script
+-- Delta Waypoint Utility Script (No Teleportation)
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -48,7 +46,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Text = "Waypoint Manager"
+titleLabel.Text = "Waypoint Utility"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 16
 titleLabel.Parent = mainFrame
@@ -227,7 +225,7 @@ local function refreshUIList()
         itemCorner.Parent = itemFrame
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.5, 0, 1, 0)
+        label.Size = UDim2.new(0.65, 0, 1, 0)
         label.Position = UDim2.new(0.05, 0, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = wp.Name
@@ -237,34 +235,13 @@ local function refreshUIList()
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = itemFrame
 
-        -- Teleport Button
-        local tpBtn = Instance.new("TextButton")
-        tpBtn.Size = UDim2.new(0, 50, 0, 25)
-        tpBtn.Position = UDim2.new(0.55, 0, 0.5, -12.5)
-        tpBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
-        tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tpBtn.Text = "TP"
-        tpBtn.Font = Enum.Font.GothamBold
-        tpBtn.TextSize = 12
-        tpBtn.Parent = itemFrame
-
-        local tpCorner = Instance.new("UICorner")
-        tpCorner.CornerRadius = UDim.new(0, 4)
-        tpCorner.Parent = tpBtn
-
-        tpBtn.MouseButton1Click:Connect(function()
-            if humanoidRootPart then
-                humanoidRootPart.CFrame = CFrame.new(wp.Pos)
-            end
-        end)
-
-        -- Delete Button
+        -- Delete Button (Expanded width since TP was removed)
         local delBtn = Instance.new("TextButton")
-        delBtn.Size = UDim2.new(0, 50, 0, 25)
-        delBtn.Position = UDim2.new(0.78, 0, 0.5, -12.5)
+        delBtn.Size = UDim2.new(0, 70, 0, 25)
+        delBtn.Position = UDim2.new(0.72, 0, 0.5, -12.5)
         delBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        delBtn.Text = "Del"
+        delBtn.Text = "Delete"
         delBtn.Font = Enum.Font.GothamBold
         delBtn.TextSize = 12
         delBtn.Parent = itemFrame
@@ -332,4 +309,4 @@ if isfile(fileName) then
         refreshUIList()
     end
 end
-print("loafed")
+print("util")
